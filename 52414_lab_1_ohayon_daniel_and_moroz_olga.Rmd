@@ -148,10 +148,9 @@ deaths.agg4
 italy_cases <- cases.agg[which(cases.agg$Country.Region=="Italy"),]
 italy_cases
 
+plot(italy_cases$Diff ~ as.Date(italy_cases$Date, "%d%m%y"),type="1"  ,xlab = "dates", ylab = "italy", main =  "Italy", col = "pink" )
 
-plot(italy_cases$Diff, names.arg = italy_cases$Date, xlab = "dates", ylab = "italy", main =  "Italy", col = "pink")
-
-
+#plot(sales$units~as.Date(sales$date,"%d/%m/%y"),type="l",xlab="Date",ylab="Units Sold")
 
 ```
 **Soluton:**    
@@ -173,7 +172,43 @@ c. Select and rename the following columns: `country` as country, `GDP(US curren
 d. Show a table of the five countries with the highest per capita GDP in 2018.     
 Next (considering all countries), plot the % of population over 65 vs. log of GDP per capita in 2018, after excluding the 10% countries with the lowest GDP per capita. Using `lm` and `abline`, add a regression line to the plot. What is your conclusion? (13 pts)  
   
-  
+```{r}
+
+#a
+eco_data <- read.csv(url("https://raw.githubusercontent.com/DataScienceHU/DataAnalysisR_2020/master/data/economic_data.csv"))
+names(eco_data)[names(eco_data)== "ן..Country.Name"] <- "country"
+names(eco_data)[names(eco_data)== "Country.Code"] <- "S_country"
+names(eco_data)[names(eco_data)== "Series.Name"] <- "feature"
+names(eco_data)[names(eco_data)== "Series.Code"] <- "feature_code"
+names(eco_data)[names(eco_data)== "X2018..YR2018."] <- "Y2018V"
+names(eco_data)[names(eco_data)== "X2019..YR2019."] <- "Y2019V"
+
+#b
+eco_data<- eco_data[-c(2641:2649),]
+eco_wide <-dcast(eco_data, country~feature, value.var="Y2018V")
+dim(eco_wide)
+
+#c
+
+names(eco_wide)[names(eco_wide)== "GDP (current US$)"] <- "GDP"
+names(eco_wide)[names(eco_wide)== "Population ages 65 and above (% of total population)"] <- "pop65"
+names(eco_wide)[names(eco_wide)== "Population in the largest city (% of urban population)"] <- "pop_city_ratio"
+names(eco_wide)[names(eco_wide)== "Population, total"] <- "pop_total"
+
+#d
+#eco_wide$GDP_per_capital <- ((as.numeric(c(eco_wide$GDP )) / as.numeric(c(eco_wide$pop_total))
+eco_wide <-eco_wide[order(eco_wide$`GDP, PPP (current international $)` , decreasing = TRUE),]
+top_5 <- head(eco_wide,5)
+top_5
+
+
+
+x <- round(nrow(eco_wide )%*% 0.1,)
+x
+eco_wide <- head(eco_wide,-x)
+
+plot(log(as.numeric(eco_wide$`GDP, PPP (current international $)`)),names.arg=as.numeric(eco_wide$pop65), xlab="65+", ylab="GDP",main="plot"  )
+```
   
 **Solution:** 
   
