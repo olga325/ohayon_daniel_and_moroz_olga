@@ -91,21 +91,20 @@ deaths.agg2 <- deaths.agg2[order(deaths.agg2 $Date , decreasing = FALSE),]
 recovered.agg2 <- group_by(corona_recovered, Country.Region, Date) %>% summarise(sum = sum(Value))
 recovered.agg2 <- recovered.agg2[order(recovered.agg2 $Date , decreasing = FALSE),]
 #d
+
 cases_march <- cases.agg[which(cases.agg$Date == "2020-03-31"),]
 deaths_march <- deaths.agg[which(deaths.agg$Date == "2020-03-31"),]
 recovered_march <- recovered.agg[which(recovered.agg$Date == "2020-03-31"),]
 
-
 join1 <- left_join(cases_march,deaths_march,by="Country.Region")
 join2 <- left_join(join1, recovered_march)
-join2 <- mutate(join2, sick = c(join2$Value.x)-c(join2$Value.y)-c(join2$Value) )
+join2$sick <- c(join2$Value.x-join2$Value.y-join2$Value)
 join2 <- head(join2[order(join2$Value.x , decreasing = TRUE),],10)
 
-colors <- c("red", "green", "orange")
-countries <- c(as.character(join2$Country.Region))
+# countries <- c(as.character(join2$Country.Region))
 countries
-regions <- c(  join2$Value.y, join2$Value, join2$sick)
-#barplot(as.matrix(join2), main = "Top 10 ", names.arg = join2$Country.Region, xlab = "countries", ylab = "total cases", col = colors)
+regions <- c(join2$Value.y, join2$Value, join2$sick)
+barplot(as.matrix(join2), main = "Top 10 ", names.arg = as.character(join2$Country.Region), xlab = "countries", ylab = "total cases", col = c("red","orange","blue"))
 
 #legend("topleft", regions, cex = 1.3, fill = colors)
 ```
@@ -138,19 +137,25 @@ deaths.agg <- deaths.agg[order(deaths.agg$Country.Region,decreasing = FALSE),]
 deaths.agg <- deaths.agg %>%
   group_by(Country.Region) %>%
   mutate(Diff = Value-lag(Value))
-#b
+# b
 cases.agg4 <- head(cases.agg[order(cases.agg$Diff, decreasing = TRUE),],10)
 deaths.agg4 <- head(deaths.agg[order(deaths.agg$Diff,decreasing = TRUE),],10)
 cases.agg4
 deaths.agg4
 
-#c
+# c
 italy_cases <- cases.agg[which(cases.agg$Country.Region=="Italy"),]
+italy_deaths <- deaths.agg[which(deaths.agg$Country.Region == "Italy"),]
 italy_cases
+italy_deaths
 
-plot(italy_cases$Diff ~ as.Date(italy_cases$Date, "%d%m%y"),type="1"  ,xlab = "dates", ylab = "italy", main =  "Italy", col = "pink" )
+{plot(as.numeric(italy_cases$Diff) ~ as.Date(italy_cases$Date),type="l"  ,xlab = "Dates", ylab = "New Cases", main =  "Italy Corona Cases", col = "blue") + lines(as.numeric(italy_deaths$Diff) ~ as.Date(italy_cases$Date),type="l", col = "red") 
+legend("topleft",c("New Cases","New Deaths"),cex = 0.8, fill = c("blue","red"))}
 
-#plot(sales$units~as.Date(sales$date,"%d/%m/%y"),type="l",xlab="Date",ylab="Units Sold")
+# d 
+{plot(log(as.numeric(italy_cases$Diff)) ~ as.Date(italy_cases$Date),type="l"  ,xlab = "date", ylab = "New Cases", main =  "Italy Corona Cases - Logarithm Scale ", col = "blue") + lines(log(as.numeric(italy_deaths$Diff)) ~ as.Date(italy_cases$Date),type="l", col = "red")
+legend("topleft",c("New Cases","New Deaths"),cex = 0.8, fill = c("blue","red"))}
+
 
 ```
 **Soluton:**    
@@ -185,29 +190,28 @@ names(eco_data)[names(eco_data)== "X2019..YR2019."] <- "Y2019V"
 
 #b
 eco_data<- eco_data[-c(2641:2649),]
-eco_wide <-dcast(eco_data, country~feature, value.var="Y2018V")
+eco <- dcast(eco_data, country~feature, value.var="Y2018V")
 dim(eco_wide)
 
 #c
 
-names(eco_wide)[names(eco_wide)== "GDP (current US$)"] <- "GDP"
-names(eco_wide)[names(eco_wide)== "Population ages 65 and above (% of total population)"] <- "pop65"
-names(eco_wide)[names(eco_wide)== "Population in the largest city (% of urban population)"] <- "pop_city_ratio"
-names(eco_wide)[names(eco_wide)== "Population, total"] <- "pop_total"
+names(eco)[names(eco)== "GDP (current US$)"] <- "GDP"
+names(eco)[names(eco)== "Population ages 65 and above (% of total population)"] <- "pop65"
+names(eco)[names(eco)== "Population in the largest city (% of urban population)"] <- "pop_city_ratio"
+names(eco)[names(eco)== "Population, total"] <- "pop_total"
 
 #d
 #eco_wide$GDP_per_capital <- ((as.numeric(c(eco_wide$GDP )) / as.numeric(c(eco_wide$pop_total))
-eco_wide <-eco_wide[order(eco_wide$`GDP, PPP (current international $)` , decreasing = TRUE),]
-top_5 <- head(eco_wide,5)
+eco <-eco[order(eco$`GDP, PPP (current international $)` , decreasing = TRUE),]
+top_5 <- head(eco,5)
 top_5
 
+lowest_GDP <- round(nrow(eco)%*% 0.1,)
+eco <- head(eco,-lowest_GDP)
 
+plot(log(as.numeric(eco_wide$`GDP, PPP (current international $)`)),as.numeric(eco_wide$pop65), xlab="65+", ylab="GDP",main="plot")
 
-x <- round(nrow(eco_wide )%*% 0.1,)
-x
-eco_wide <- head(eco_wide,-x)
-
-plot(log(as.numeric(eco_wide$`GDP, PPP (current international $)`)),names.arg=as.numeric(eco_wide$pop65), xlab="65+", ylab="GDP",main="plot"  )
+# GDP.lm <- lm(log(as.numeric(eco_wide$`GDP, PPP (current international $)`)) ~ as.numeric(eco_wide$pop65)) + abline(GDP.lm)
 ```
   
 **Solution:** 
@@ -233,13 +237,16 @@ In addition, color the outliers( pop65>24, norm100K_deaths>15) in that plot in r
   
   
 **Solution:**   
-
+```{r}
+corona<- left_join(deaths.agg, cases.agg, by= c("Country.Region", "Date"))
+corona <- left_join (corona, recovered.agg, by = c("Country.Region", "Date"))
+names(corona)[names(corona)== "Country.Region"] <- "country"
+join3 <- left_join(corona,eco, by = "country" )
+```
 YOUR SOLUTION HERE.
 Use code blocks and markdown to clearly communicate your work.
 
-<br/><br/>  
-
-
+<br/><br/> 
 
 ### Q5
 ### Open Question
