@@ -96,21 +96,22 @@ cases_march <- cases.agg[which(cases.agg$Date == "2020-03-31"),]
 deaths_march <- deaths.agg[which(deaths.agg$Date == "2020-03-31"),]
 recovered_march <- recovered.agg[which(recovered.agg$Date == "2020-03-31"),]
 
-join1 <- left_join(cases_march,deaths_march,by="Country.Region")
-join2 <- left_join(join1, recovered_march)
-join2$sick <- c(join2$Value.x-join2$Value.y-join2$Value)
-join2 <- head(join2[order(join2$Value.x , decreasing = TRUE),],10)
+join_corona <- left_join(cases_march,deaths_march,by="Country.Region")
+join_corona <- left_join(join_corona, recovered_march)
+join_corona$sick <- c(join_corona$Value.x-join_corona$Value.y-join_corona$Value)
+join_corona <- head(join_corona[order(join_corona$Value.x , decreasing = TRUE),],10)
 
-# countries <- c(as.character(join2$Country.Region))
-countries
-regions <- c(join2$Value.y, join2$Value, join2$sick)
-barplot(as.matrix(join2), main = "Top 10 ", names.arg = as.character(join2$Country.Region), xlab = "countries", ylab = "total cases", col = c("red","orange","blue"))
+barp_table <- data.frame(name = rep(c("sick","deaths","recovered"), each = 10), country = rep(join_corona$Country.Region,3),values = c(join_corona$sick, join_corona$Value.y, join_corona$Value))
 
-#legend("topleft", regions, cex = 1.3, fill = colors)
+colors = c("orange","red","green")
+val_mat <- matrix(c(barp_table$values),nrow = 3,ncol = 10,byrow = TRUE)
+countries <- as.vector(join_corona$Country.Region)
+kind <- c( "Sick", "Deaths","Recovered")
+
+{barplot(val_mat, main = "Corona Total Cases - TOP 10 Countries", names.arg = countries ,las = 2, xlab = "Country", ylab = "Cases",cex.axis= 0.55, cex.names = 0.55, col = colors,ylim = c(0,200000))
+legend("topright", kind , col = colors , bty = "n", pch=20 , pt.cex = 2, cex = 0.8, horiz = FALSE, inset = c(0.05, 0.05))}
+
 ```
-
-
-
 
 
 <br/><br/>  
@@ -125,6 +126,7 @@ a. Add a new column named `Diff` to both the `cases.agg` and the `deaths.agg` da
 b. Find the top 10 instances of country and date combinations with the greatest absolute number of new daily Corona cases and deaths (separately). Print the result in a descriptive format. (5pts)  
 c. In one figure, plot Italy's new daily Corona cases AND deaths as a function of Date. Choose the plot type you think that makes the most sense. (3pts) 
 d. Plot the same graph as in (c), but this time plot the number of new cases on the logarithm scale. What can we learn? (5pts)  
+**Soluton:** 
 
 ```{r}
  # a
@@ -158,10 +160,6 @@ legend("topleft",c("New Cases","New Deaths"),cex = 0.8, fill = c("blue","red"))}
 
 
 ```
-**Soluton:**    
-
-YOUR SOLUTION HERE.
-Use code blocks and markdown to clearly communicate your work.
 
 <br/><br/>
 
@@ -176,7 +174,8 @@ The rest of the columns should be the features with their respective values in `
 c. Select and rename the following columns: `country` as country, `GDP(US currency)` as GDP, `Population ages 65 and above (% of total population)` as pop65, `Population in the largest city (% of urban population)` as pop_city_ratio, `Population, total` as pop_total columns .  (2pts) 
 d. Show a table of the five countries with the highest per capita GDP in 2018.     
 Next (considering all countries), plot the % of population over 65 vs. log of GDP per capita in 2018, after excluding the 10% countries with the lowest GDP per capita. Using `lm` and `abline`, add a regression line to the plot. What is your conclusion? (13 pts)  
-  
+
+**Soluton:** 
 ```{r}
 
 #a
@@ -191,7 +190,7 @@ names(eco_data)[names(eco_data)== "X2019..YR2019."] <- "Y2019V"
 #b
 eco_data<- eco_data[-c(2641:2649),]
 eco <- dcast(eco_data, country~feature, value.var="Y2018V")
-dim(eco_wide)
+head(eco,10)
 
 #c
 
@@ -209,16 +208,12 @@ top_5
 lowest_GDP <- round(nrow(eco)%*% 0.1,)
 eco <- head(eco,-lowest_GDP)
 
-plot(log(as.numeric(eco_wide$`GDP, PPP (current international $)`)),as.numeric(eco_wide$pop65), xlab="65+", ylab="GDP",main="plot")
+plot(x = as.numeric(eco$pop65), y = log(as.numeric(eco$`GDP, PPP (current international $)`)), xlab="65+ percent", ylab="GDP per capita" ,main="GDP - POP 65+")
 
-# GDP.lm <- lm(log(as.numeric(eco_wide$`GDP, PPP (current international $)`)) ~ as.numeric(eco_wide$pop65)) + abline(GDP.lm)
+abline(lm(log(as.numeric(eco$`GDP, PPP (current international $)`)) ~ as.numeric(eco$pop65))) 
+
+# 
 ```
-  
-**Solution:** 
-  
-YOUR SOLUTION HERE.
-Use code blocks and markdown to clearly communicate your work.
-
 <br/><br/>  
 
 
@@ -238,13 +233,11 @@ In addition, color the outliers( pop65>24, norm100K_deaths>15) in that plot in r
   
 **Solution:**   
 ```{r}
-corona<- left_join(deaths.agg, cases.agg, by= c("Country.Region", "Date"))
+corona <- left_join(deaths.agg, cases.agg, by= c("Country.Region", "Date"))
 corona <- left_join (corona, recovered.agg, by = c("Country.Region", "Date"))
-names(corona)[names(corona)== "Country.Region"] <- "country"
-join3 <- left_join(corona,eco, by = "country" )
+names(corona)[names(corona) == "Country.Region"] <- "country"
+join3 <- left_join(corona, eco, by = "country" )
 ```
-YOUR SOLUTION HERE.
-Use code blocks and markdown to clearly communicate your work.
 
 <br/><br/> 
 
@@ -255,8 +248,24 @@ Use code blocks and markdown to clearly communicate your work.
 Write an interesting research question regarding the Corona outbreak and then follow the steps to answer it using tables and plots. You can use the loaded datasets or any other dataset you find as long as you add the data file to your `lab1` repository so it can be loaded directly from a `url` (e.g. the World Bank). This question will be graded based on creativity, originality, and the novelty of the analysis.   
   
 **Solution:**   
+```{r}
+cig_data <- read.csv(url("https://apps.who.int/gho/athena/data/GHO/R_Sp_excise_average,R_Ad_val_average,R_imp_duty_average,R_VAT_average,R_Other_average,R_total_tax_average?filter=COUNTRY:*;REGION:*&x-sideaxis=COUNTRY;YEAR&x-topaxis=GHO&profile=crosstable&format=csv"))
+cig_data <-cig_data[!(cig_data$Average...taxes.as.a...of.cigarette.price...total.tax == "Not available" | cig_data$Average...taxes.as.a...of.cigarette.price...total.tax ==	"Not applicable" ),]
+cig_data <- cig_data[cig_data$Year == "2014",]
+names(cig_data)[names(cig_data)== "Country"] <- "Country.Region"
 
-YOUR SOLUTION HERE.
-Use code blocks and markdown to clearly communicate your work.
+join_cig <- left_join(cig_data, cases_march ,by="Country.Region")
 
+join_cig$Average...taxes.as.a...of.cigarette.price...total.tax <- as.character(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax)
+class(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax) <- "double"
+
+names(join_cig)[names(join_cig)== "Country.Region"] <- "country"
+join_cig <- left_join(join_cig, eco, by = "country")
+join_cig$normal_pop <- c((as.numeric(join_cig$Value) / as.numeric(join_cig$pop_total)*100))
+
+plot(x =join_cig$Average...taxes.as.a...of.cigarette.price...total.tax, y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.005) ,xlab="% taxes of Cigarette Price ", ylab="Number of cases" ,main="Conection between Cigarette Taxes and Number of Cases")
+abline(lm(as.numeric(join_cig$normal_pop)) ~ as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax)) 
+
+```
+The research question is whether there is a connection between government policy on smoking and the number of corona cases relative to the country's population. Our assumption was that the more aggressive the cigarette tax the government could reduce the risk of being infected with Corona.
 <br/><br/>  
