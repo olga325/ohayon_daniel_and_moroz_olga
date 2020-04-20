@@ -188,8 +188,9 @@ names(eco_data)[names(eco_data)== "X2018..YR2018."] <- "Y2018V"
 names(eco_data)[names(eco_data)== "X2019..YR2019."] <- "Y2019V"
 
 #b
-eco_data<- eco_data[-c(2641:2649),]
+eco_data<- eco_data[-c(2641:2645),]
 eco <- dcast(eco_data, country~feature, value.var="Y2018V")
+dim(eco)
 head(eco,10)
 
 #c
@@ -200,17 +201,16 @@ names(eco)[names(eco)== "Population in the largest city (% of urban population)"
 names(eco)[names(eco)== "Population, total"] <- "pop_total"
 
 #d
-#eco_wide$GDP_per_capital <- ((as.numeric(c(eco_wide$GDP )) / as.numeric(c(eco_wide$pop_total))
-eco <-eco[order(eco$`GDP, PPP (current international $)` , decreasing = TRUE),]
-top_5 <- head(eco,5)
-top_5
+eco$GDP_per_capita <- c(as.numeric(eco$GDP ) / as.numeric(eco$pop_total))
+top5 <-head (eco[order(eco$GDP_per_capita , decreasing = TRUE),],5)
+top5
 
 lowest_GDP <- round(nrow(eco)%*% 0.1,)
-eco <- head(eco,-lowest_GDP)
+eco_plot <- head(eco,-lowest_GDP)
 
-plot(x = as.numeric(eco$pop65), y = log(as.numeric(eco$`GDP, PPP (current international $)`)), xlab="65+ percent", ylab="GDP per capita" ,main="GDP - POP 65+")
+plot(x = as.numeric(eco_plot$pop65), y = log(as.numeric(eco_plot$GDP_per_capita)), xlab="65+ percent", ylab="GDP per capita" ,main="GDP - POP 65+")
 
-abline(lm(log(as.numeric(eco$`GDP, PPP (current international $)`)) ~ as.numeric(eco$pop65))) 
+abline(lm(log(as.numeric(eco_plot$GDP_per_capita)) ~ as.numeric(eco_plot$pop65))) 
 
 # 
 ```
@@ -236,7 +236,40 @@ In addition, color the outliers( pop65>24, norm100K_deaths>15) in that plot in r
 corona <- left_join(deaths.agg, cases.agg, by= c("Country.Region", "Date"))
 corona <- left_join (corona, recovered.agg, by = c("Country.Region", "Date"))
 names(corona)[names(corona) == "Country.Region"] <- "country"
-join3 <- left_join(corona, eco, by = "country" )
+join3 <- left_join(eco,corona, by = "country" )
+#which(corona$country=="Russia")
+#which(eco$country=="Russian Federation")
+check<- anti_join(eco,corona,by="country")
+eco_names <- as.character(eco$country[!eco$country %in% corona$country])
+corona_names <- as.character(unique(corona$country))
+print(length(corona_names)==length(eco_names)) # not the same number of countries in corona and eco, missing information/
+eco_names
+eco_pltnames <- as.character(eco$country[!eco$country %in% eco_plot$country])
+eco_pltnames
+
+eco$country<- as.character(eco$country)
+eco$country[eco$country=="Myanmar"] <- "Burma"
+eco$country[eco$country=="Brunei Darussalam"] <- "Brunei"
+eco$country[eco$country=="Congo, Dem. Rep."] <- "Congo (Kinshasa)"
+eco$country[eco$country=="Congo, Rep."] <- "Congo (Brazzaville)"
+eco$country[eco$country=="Czech Republic"] <- "Czechia"
+eco$country[eco$country=="Egypt, Arab Rep."] <- "Egypt"
+eco$country[eco$country=="Gambia, The"] <- "Gambia"
+eco$country[eco$country=="Iran, Islamic Rep."] <- "Iran"
+eco$country[eco$country=="Korea, Rep."] <- "Korea, South"
+eco$country[eco$country=="Kyrgyz Republic"] <- "Kyrgyzstan"
+eco$country[eco$country=="Lao PDR"] <- "Laos"
+eco$country[eco$country=="Russian Federation"] <- "Russia"
+eco$country[eco$country=="Slovak Republic"] <- "Slovakia"
+eco$country[eco$country=="St. Kitts and Nevis"] <- "Saint Kitts and Nevis"
+eco$country[eco$country=="St. Lucia"] <- "Saint Lucia"
+eco$country[eco$country=="St. Vincent and the Grenadines"] <- "Saint Vincent and the Grenadines"
+eco$country[eco$country=="Sub-Saharan Africa"] <- "Western Sahara"
+eco$country[eco$country=="Syrian Arab Republic"] <- "Syria"
+eco$country[eco$country=="United States"] <- "US"
+eco$country[eco$country=="Venezuela, RB"] <- "Venezuela"
+eco$country[eco$country=="Yemen, Rep."] <- "Yemen"
+
 ```
 
 <br/><br/> 
@@ -263,9 +296,10 @@ names(join_cig)[names(join_cig)== "Country.Region"] <- "country"
 join_cig <- left_join(join_cig, eco, by = "country")
 join_cig$normal_pop <- c((as.numeric(join_cig$Value) / as.numeric(join_cig$pop_total)*100))
 
-plot(x =join_cig$Average...taxes.as.a...of.cigarette.price...total.tax, y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.005) ,xlab="% taxes of Cigarette Price ", ylab="Number of cases" ,main="Conection between Cigarette Taxes and Number of Cases")
+plot(x =join_cig$Average...taxes.as.a...of.cigarette.price...total.tax, y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.015) ,xlab="% taxes of Cigarette Price ", ylab="% Corona cases from Population - * 100" ,main="Conection between Cigarette Taxes and Number of Cases")
 abline(lm(as.numeric(join_cig$normal_pop)) ~ as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax)) 
 
 ```
 The research question is whether there is a connection between government policy on smoking and the number of corona cases relative to the country's population. Our assumption was that the more aggressive the cigarette tax the government could reduce the risk of being infected with Corona.
+
 <br/><br/>  
