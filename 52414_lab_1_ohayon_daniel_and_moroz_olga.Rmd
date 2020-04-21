@@ -38,7 +38,7 @@ Your final push should include this Rmd file (with your answers) together with t
 The only allowed libraries are the following (**please do not add your own**):
 ```{r, include=FALSE}
 library('tidyverse')
-library(data.table)
+library('data.table')
 ```  
 <br/><br/>
 
@@ -83,13 +83,16 @@ recovered.agg <- aggregate(Value ~ Country.Region + Date , corona_recovered ,FUN
 recovered.agg <- recovered.agg[order(recovered.agg$Date , decreasing = FALSE),]
 
 #c
-library(tidyverse)
-cases.agg2 <- group_by(corona_cases, Country.Region, Date) %>% summarise(sum = sum(Value))
+cases.agg2 <- group_by(corona_cases, Country.Region, Date) %>% summarise(Value= sum(Value))
 cases.agg2 <- cases.agg2[order(cases.agg2$Date , decreasing = FALSE),]
-deaths.agg2 <- group_by(corona_deaths, Country.Region, Date) %>% summarise(sum = sum(Value))
-deaths.agg2 <- deaths.agg2[order(deaths.agg2 $Date , decreasing = FALSE),]
-recovered.agg2 <- group_by(corona_recovered, Country.Region, Date) %>% summarise(sum = sum(Value))
-recovered.agg2 <- recovered.agg2[order(recovered.agg2 $Date , decreasing = FALSE),]
+deaths.agg2 <- group_by(corona_deaths, Country.Region, Date) %>% summarise(Value = sum(Value))
+deaths.agg2 <- deaths.agg2[order(deaths.agg2$Date , decreasing = FALSE),]
+recovered.agg2 <- group_by(corona_recovered, Country.Region, Date) %>% summarise(Value = sum(Value))
+recovered.agg2 <- recovered.agg2[order(recovered.agg2$Date , decreasing = FALSE),]
+
+isTRUE(all.equal(cases.agg, cases.agg2))
+isTRUE(all.equal(deaths.agg, deaths.agg2))
+isTRUE(all.equal(recovered.agg, recovered.agg2))
 #d
 
 cases_march <- cases.agg[which(cases.agg$Date == "2020-03-31"),]
@@ -209,7 +212,6 @@ lowest_GDP <- round(nrow(eco)%*% 0.1,)
 eco_plot <- head(eco,-lowest_GDP)
 
 plot(x = as.numeric(eco_plot$pop65), y = log(as.numeric(eco_plot$GDP_per_capita)), xlab="65+ percent", ylab="GDP per capita" ,main="GDP - POP 65+")
-
 abline(lm(log(as.numeric(eco_plot$GDP_per_capita)) ~ as.numeric(eco_plot$pop65))) 
 
 # 
@@ -222,7 +224,7 @@ abline(lm(log(as.numeric(eco_plot$GDP_per_capita)) ~ as.numeric(eco_plot$pop65))
 20 points
 
 a. Join the `deaths.agg`, `cases.agg`, and `recovered.agg` into one data-frame called `corona`.(5pts)
-b. Join the `corona` and `eco` data-frames in a way that will keep the most information regarding the data (but not full join).   
+b. Join the `corona` and `eco` data-frames in a way that will keep the most information regarding the data (but not full join). 
 Make sure that no essential data is thrown away (show this). (3pts)
 c. Create new columns of normalized `cases`, `deaths`, and `recovered` so they will show the number of cases per 100,000 people for each country.   
 Using the last day of March as a reference, create a single stacked bar plot that visualizes the top 10 countries in terms of normalized Corona cases, and their respected normalized Corona deaths and recovered, as done in Q1.   
@@ -233,23 +235,19 @@ In addition, color the outliers( pop65>24, norm100K_deaths>15) in that plot in r
   
 **Solution:**   
 ```{r}
-corona <- left_join(deaths.agg, cases.agg, by= c("Country.Region", "Date"))
+# a
+corona <- left_join( cases.agg ,deaths.agg, by= c("Country.Region", "Date"))
 corona <- left_join (corona, recovered.agg, by = c("Country.Region", "Date"))
-names(corona)[names(corona) == "Country.Region"] <- "country"
-join3 <- left_join(eco,corona, by = "country" )
-#which(corona$country=="Russia")
-#which(eco$country=="Russian Federation")
-check<- anti_join(eco,corona,by="country")
+
+# b
 eco_names <- as.character(eco$country[!eco$country %in% corona$country])
 corona_names <- as.character(unique(corona$country))
-print(length(corona_names)==length(eco_names)) # not the same number of countries in corona and eco, missing information/
-eco_names
-eco_pltnames <- as.character(eco$country[!eco$country %in% eco_plot$country])
-eco_pltnames
+length(corona_names)==length(eco_names) # not the same number of countries in corona and eco, missing information/
 
 eco$country<- as.character(eco$country)
 eco$country[eco$country=="Myanmar"] <- "Burma"
 eco$country[eco$country=="Brunei Darussalam"] <- "Brunei"
+eco$country[eco$country=="Bahamas, The"] <- "Bahamas"
 eco$country[eco$country=="Congo, Dem. Rep."] <- "Congo (Kinshasa)"
 eco$country[eco$country=="Congo, Rep."] <- "Congo (Brazzaville)"
 eco$country[eco$country=="Czech Republic"] <- "Czechia"
@@ -270,6 +268,46 @@ eco$country[eco$country=="United States"] <- "US"
 eco$country[eco$country=="Venezuela, RB"] <- "Venezuela"
 eco$country[eco$country=="Yemen, Rep."] <- "Yemen"
 
+names(corona)[names(corona) == "Country.Region"] <- "country"
+corona_eco <- left_join(corona,eco, by = "country" )
+ 
+# c
+
+corona_eco$cases <- c((as.numeric(corona_eco$Value.x)/as.numeric(corona_eco$pop_total)) * 100000)
+corona_eco$deaths <- c((as.numeric(corona_eco$Value.y)/as.numeric(corona_eco$pop_total))* 100000)
+corona_eco$recovered <- c((as.numeric(corona_eco$Value)/as.numeric(corona_eco$pop_total)) * 100000)
+
+corona_eco$sick <- c(corona_eco$cases-corona_eco$deaths-corona_eco$recovered)
+corona_eco_march <- corona_eco[which(corona_eco$Date == "2020-03-31"),]
+corona_eco1 <- head(corona_eco_march[order(corona_eco_march$cases , decreasing = TRUE),],10)
+corona_eco1
+
+barp_table_m <- data.frame(name = rep(c("sick","deaths","recovered"), each = 10), country = rep(corona_eco1$country,3),values = c(corona_eco1$sick, corona_eco1$deaths, corona_eco1$recovered))
+
+colors_m = c("orange","red","green")
+val_mat_m <- matrix(c(barp_table_m$values),nrow = 3,ncol = 10,byrow = TRUE)
+countries_m <- as.vector(corona_eco1$country)
+kind_m <- c( "Sick", "Deaths","Recovered")
+
+{barplot(val_mat_m, main = "Corona Total Cases - TOP 10 Countries", names.arg = countries_m ,las = 2, xlab = "Country", ylab = "Cases", cex.axis= 0.55, cex.names = 0.55, col = colors,ylim = c(0,1000))
+legend("topright", kind_m , col = colors_m , bty = "n", pch=20 , pt.cex = 2, cex = 0.8, horiz = FALSE, inset = c(0.05, 0.05))}
+
+# As we can see, when comparing the normalized values by population in each country,we get different results than regular comparison. Since the new comparison takes into account the size of the population, the results are more accurate and closer to reality.
+
+
+# d
+# 
+# data$Colour[data$col_name2>=3]="red"
+# data$Colour[data$col_name2<=1]="blue"
+# plot(data$col_name1,data$col_name2, ylim=c(0,5), col=data$Colour, ylim=c(0,10))
+
+corona_eco_march <- corona_eco_march[which(as.numeric(corona_eco_march$pop65) >= 15),]
+corona_eco_march$color <- "black"
+corona_eco_march$color[corona_eco_march$pop65 > 24] = "red"
+corona_eco_march$color[corona_eco_march$deaths > 15] = "red"
+                       
+plot(x = log10(as.numeric(corona_eco_march$Value.x)), y = as.numeric(corona_eco_march$pop65), xlab="deaths and cases", ylab="pop 65" ,main="1") + points(x =log10(as.numeric(corona_eco_march$Value.y)), y = as.numeric(corona_eco_march$pop65),type="p",col = corona_eco_march$color)
+# abline(lm(log10(as.numeric(corona_eco_march$pop65))~ as.numeric(corona_eco_march))) 
 ```
 
 <br/><br/> 
@@ -283,21 +321,48 @@ Write an interesting research question regarding the Corona outbreak and then fo
 **Solution:**   
 ```{r}
 cig_data <- read.csv(url("https://apps.who.int/gho/athena/data/GHO/R_Sp_excise_average,R_Ad_val_average,R_imp_duty_average,R_VAT_average,R_Other_average,R_total_tax_average?filter=COUNTRY:*;REGION:*&x-sideaxis=COUNTRY;YEAR&x-topaxis=GHO&profile=crosstable&format=csv"))
-cig_data <-cig_data[!(cig_data$Average...taxes.as.a...of.cigarette.price...total.tax == "Not available" | cig_data$Average...taxes.as.a...of.cigarette.price...total.tax ==	"Not applicable" ),]
+
+# Delete the countries with no taxes information and calculate the rest according to 2014
+cig_data <- cig_data[!(cig_data$Average...taxes.as.a...of.cigarette.price...total.tax == "Not available" | cig_data$Average...taxes.as.a...of.cigarette.price...total.tax ==	"Not applicable" ),]
 cig_data <- cig_data[cig_data$Year == "2014",]
+
+# Find the countries listed in join_cig and not in eco
+cig_names <- as.character(cig_data$Country[!cig_data$Country %in% cases_march$Country.Region])
+cig_names
 names(cig_data)[names(cig_data)== "Country"] <- "Country.Region"
 
+# Change the name of the relevant countries
+cig_data$Country.Region<- as.character(cig_data$Country.Region)
+cig_data$Country.Region[cig_data$Country.Region=="Bolivia (Plurinational State of)"] <- "Bolivia"
+cig_data$Country.Region[cig_data$Country.Region=="Iran (Islamic Republic of)"] <- "Iran"
+cig_data$Country.Region[cig_data$Country.Region=="Republic of Korea"] <- "Korea, South"
+cig_data$Country.Region[cig_data$Country.Region=="Republic of Moldova"] <- "Moldova"
+cig_data$Country.Region[cig_data$Country.Region=="Russian Federation"] <- "Russia"
+cig_data$Country.Region[cig_data$Country.Region=="Republic of North Macedonia"] <- "North Macedonia"
+cig_data$Country.Region[cig_data$Country.Region=="United Kingdom of Great Britain and Northern Ireland"] <- "Ireland"
+cig_data$Country.Region[cig_data$Country.Region=="United States of America"] <- "US"
+cig_data$Country.Region[cig_data$Country.Region=="Viet Nam"] <- "Vietnam"
+
+# Merge the data with the corona cases on 31.3.20 data-frame
 join_cig <- left_join(cig_data, cases_march ,by="Country.Region")
 
+# Convert data from numbers to percent
 join_cig$Average...taxes.as.a...of.cigarette.price...total.tax <- as.character(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax)
 class(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax) <- "double"
 
+# Merge the data with the eco data frame
+cig_names <- as.character(join_cig$Country.Region[!join_cig$Country.Region %in% eco$country])
+cig_names
 names(join_cig)[names(join_cig)== "Country.Region"] <- "country"
 join_cig <- left_join(join_cig, eco, by = "country")
+
+# Create a normalized column of corona cases per country
 join_cig$normal_pop <- c((as.numeric(join_cig$Value) / as.numeric(join_cig$pop_total)*100))
 
-plot(x =join_cig$Average...taxes.as.a...of.cigarette.price...total.tax, y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.015) ,xlab="% taxes of Cigarette Price ", ylab="% Corona cases from Population - * 100" ,main="Conection between Cigarette Taxes and Number of Cases")
+# Creates a graph that examines the connection between cig.taxes and the corona cases number in each country
+plot(x =as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax), y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.015) ,xlab="% taxes of Cigarette Price ", ylab="% Corona cases from Population - * 100" ,main="Conection between Cigarette Taxes and Number of Cases")
 abline(lm(as.numeric(join_cig$normal_pop)) ~ as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax)) 
+
 
 ```
 The research question is whether there is a connection between government policy on smoking and the number of corona cases relative to the country's population. Our assumption was that the more aggressive the cigarette tax the government could reduce the risk of being infected with Corona.
