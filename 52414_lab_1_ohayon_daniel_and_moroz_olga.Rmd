@@ -1,6 +1,6 @@
 ---
 title: "52414 - lab 1"
-author: "52414"
+author: "52414_lab_1_ohayon_daniel_and_moroz_olga"
 date: "4/4/2020"
 output: html_document
 ---
@@ -129,6 +129,10 @@ legend("topright", kind , col = colors , bty = "n", pch=20 , pt.cex = 2, cex = 0
 
 ```
 
+<br/><br/>  
+
+### 1.d
+-The biggest problem is that the 10 shown countries are top only in there confurmed corona cases, it doesnt show the top 10 countries in case of deaths or recovery, it is a lack of information.
 
 <br/><br/>  
 
@@ -180,6 +184,9 @@ legend("topleft",c("New Cases","New Deaths"),cex = 0.8, fill = c("blue","red"))}
 ```
 
 <br/><br/>
+###2.d
+-The graphs show that the rate of cases has fallen since mid-March. It can be concluded that Italy changed its policy on these dates.
+<br/><br/>
 
 
 ### Q3
@@ -218,19 +225,26 @@ names(eco)[names(eco)== "Population, total"] <- "pop_total"
 
 #d 
 # calculate column GDP per Capita and find the top 5 countries according to that
-eco$GDP_per_capita <- c(as.numeric(eco$GDP ) / as.numeric(eco$pop_total))
+eco$GDP_per_capita <- c(suppressWarnings(as.numeric(eco$GDP ) / as.numeric(eco$pop_total)))
 top5 <-head (eco[order(eco$GDP_per_capita , decreasing = TRUE),],5)
 top5
+
 
 # delete the 10% countries with the lowest GDP per Capita
 lowest_GDP <- round(nrow(eco)%*% 0.1,)
 eco_plot <- head(eco,-lowest_GDP)
 
 # create the plot of GDP per capita VS pop65
-plot(x = as.numeric(eco_plot$pop65), y = log(as.numeric(eco_plot$GDP_per_capita)), xlab="65+ percent", ylab="GDP per capita" ,main="GDP - POP 65+")
-abline(lm(log(as.numeric(eco_plot$GDP_per_capita)) ~ as.numeric(eco_plot$pop65))) 
+plot(x = suppressWarnings(as.numeric(eco_plot$pop65)), y = log(suppressWarnings(as.numeric(eco_plot$GDP_per_capita))), xlab="65+ percent", ylab="GDP per capita" ,main="GDP - POP 65+")
+reg1 <- lm(log(suppressWarnings(as.numeric(eco_plot$GDP_per_capita))) ~ suppressWarnings(as.numeric(eco_plot$pop65)))
+abline(reg1) 
+
 
 ```
+<br/><br/> 
+###3.d
+-One can see a positive relationship between the variables, their correlation is high, but causality cannot yet be inferred.
+
 <br/><br/>  
 
 
@@ -256,6 +270,7 @@ corona <- left_join (corona, recovered.agg, by = c("Country.Region", "Date"))
 
 # b
 # Find the countries listed in eco and not in corona
+names(corona)[names(corona) == "Country.Region"] <- "country"
 eco_names <- as.character(eco$country[!eco$country %in% corona$country])
 corona_names <- as.character(unique(corona$country))
 length(corona_names)==length(eco_names) # not the same number of countries in corona and eco, missing information
@@ -286,14 +301,14 @@ eco$country[eco$country=="Venezuela, RB"] <- "Venezuela"
 eco$country[eco$country=="Yemen, Rep."] <- "Yemen"
 
 # join eco and corona
-names(corona)[names(corona) == "Country.Region"] <- "country"
+
 corona_eco <- left_join(corona,eco, by = "country" )
  
 # c
 # normalized columns Corona cases, deaths and recovered
-corona_eco$cases <- c((as.numeric(corona_eco$Value.x)/as.numeric(corona_eco$pop_total)) * 100000)
-corona_eco$deaths <- c((as.numeric(corona_eco$Value.y)/as.numeric(corona_eco$pop_total))* 100000)
-corona_eco$recovered <- c((as.numeric(corona_eco$Value)/as.numeric(corona_eco$pop_total)) * 100000)
+corona_eco$cases <- c(suppressWarnings((as.numeric(corona_eco$Value.x)/as.numeric(corona_eco$pop_total))) * 100000)
+corona_eco$deaths <- c(suppressWarnings((as.numeric(corona_eco$Value.y)/as.numeric(corona_eco$pop_total)))* 100000)
+corona_eco$recovered <- c(suppressWarnings((as.numeric(corona_eco$Value)/as.numeric(corona_eco$pop_total))) * 100000)
 corona_eco$sick <- c(corona_eco$cases-corona_eco$deaths-corona_eco$recovered)
 
 # new 'corona' data frame for 31.3.2020
@@ -319,9 +334,9 @@ legend("topright", kind_m , col = colors_m , bty = "n", pch=20 , pt.cex = 2, cex
 
 # d
 # filter the countries with 15% or more of `pop65
-corona_eco_march <- corona_eco_march[which(as.numeric(corona_eco_march$pop65) >= 15),]
+corona_eco_march <- corona_eco_march[which(suppressWarnings(as.numeric(corona_eco_march$pop65)) >= 15),]
 # create variables for points names in the plot
-label_cases <- ifelse(as.numeric(corona_eco_march$pop65) > 24, as.character(corona_eco_march$country),"")
+label_cases <- ifelse(as.numeric(corona_eco_march$pop65)> 24, as.character(corona_eco_march$country),"")
 label_death <- ifelse(corona_eco_march$deaths > 15, as.character(corona_eco_march$country),"") 
 
 # create the unified plot for corona cases and deaths vs pop65+
@@ -329,7 +344,7 @@ label_death <- ifelse(corona_eco_march$deaths > 15, as.character(corona_eco_marc
 par(mar=c(4,5,2,4))
 plot(x = as.numeric(corona_eco_march$pop65), y = as.numeric(corona_eco_march$cases) ,pch = ifelse(as.numeric(corona_eco_march$pop65) > 24 , 15,21),col = ifelse(as.numeric(corona_eco_march$pop65) > 24 ,"red", "black"),main = " Corona Cases and Deaths VS POP65+", xlab = "Pop65+", ylab = "Corona Cases", xlim =  c(14,30), ylim = c(0,250))
 par(new = TRUE)
-plot(x = as.numeric(corona_eco_march$pop65), y = as.numeric(corona_eco_march$deaths), pch = ifelse(corona_eco_march$deaths > 15, 16,1),col = ifelse(corona_eco_march$deaths > 15,"red", "purple"),axes = FALSE,xlab = "",ylab = "",ylim = c(0,25),xlim =  c(14,30))
+plot(x = as.numeric(corona_eco_march$pop65), y = as.numeric(corona_eco_march$deaths), pch = ifelse((corona_eco_march$deaths) > 15, 16,1),col = ifelse((corona_eco_march$deaths) > 15,"red", "purple"),axes = FALSE,xlab = "",ylab = "",ylim = c(0,25),xlim =  c(14,30))
 mtext("Corona Deaths",side=4,col="purple",line=2) 
 axis(4, ylim=c(0,25), col="purple",col.axis="purple",las=2)
 with(corona_eco_march,text(deaths ~ pop65, labels = label_death, pos = 3,col = "purple"))
@@ -378,18 +393,21 @@ class(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax) <- "double
 
 # Merge the data with the eco data frame
 cig_names <- as.character(join_cig$Country.Region[!join_cig$Country.Region %in% eco$country])
-cig_names
 names(join_cig)[names(join_cig)== "Country.Region"] <- "country"
 join_cig <- left_join(join_cig, eco, by = "country")
 
 # Create a normalized column of corona cases per country
-join_cig$normal_pop <- c((as.numeric(join_cig$Value) / as.numeric(join_cig$pop_total)*100))
+join_cig$normal_pop <- c((as.numeric(join_cig$Value) / as.numeric(join_cig$pop_total)*10))
 
 # Creates a graph that examines the connection between cig.taxes and the corona cases number in each country
-plot(x =as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax), y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.015) ,xlab="% taxes of Cigarette Price ", ylab="% Corona cases from Population - * 100" ,main="Conection between Cigarette Taxes and Number of Cases")
-abline(lm(as.numeric(join_cig$normal_pop)) ~ as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax)) 
+plot(x =as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax), y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.015) ,xlab="% taxes of Cigarette Price ", ylab="% Corona cases from Population - * 10" ,main="Conection between Cigarette Taxes and Number of Cases")
+reg5 <- lm(as.numeric(join_cig$normal_pop) ~ as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax))
+abline(reg5)
 
 ```
-The research question is whether there is a connection between government policy on smoking and the number of corona cases relative to the country's population. Our assumption was that the more aggressive the cigarette tax the government could reduce the risk of being infected with Corona.
+
+<br/><br/>  
+The research question is whether there is a connection between government policy on smoking and the number of corona cases relative to the country's population. Our assumption was that the more aggressive the cigarette tax the government could reduce the risk of being infected with Corona. As we know , the smoking population is a part of the risk group that more easily can be affected by the COVID-19. The purpose of high taxes is to reduce smoking in the country, we thought it would help reduce the amount of cases.
+We were surprised to find that, according to the data, the correlation between these variables is very low, so there is no real relationship between the level of taxes in the country on cigarettes and morbidity in Corona.
 
 <br/><br/>  
