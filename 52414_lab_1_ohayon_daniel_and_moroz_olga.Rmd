@@ -383,13 +383,14 @@ cig_data$Country.Region[cig_data$Country.Region=="Republic of North Macedonia"] 
 cig_data$Country.Region[cig_data$Country.Region=="United Kingdom of Great Britain and Northern Ireland"] <- "Ireland"
 cig_data$Country.Region[cig_data$Country.Region=="United States of America"] <- "US"
 cig_data$Country.Region[cig_data$Country.Region=="Viet Nam"] <- "Vietnam"
-
+cig_data <- cig_data[-which(cig_data$Country.Region == "Comoros"),]
 # Merge the data with the corona cases on 31.3.20 data-frame
 join_cig <- left_join(cig_data, cases_march ,by="Country.Region")
 
 # Convert data from numbers to percent
-join_cig$Average...taxes.as.a...of.cigarette.price...total.tax <- as.character(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax)
-class(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax) <- "double"
+names(join_cig)[names(join_cig)== "Average...taxes.as.a...of.cigarette.price...total.tax"] <- "total_tax"
+join_cig$total_tax <- as.character(join_cig$total_tax)
+class(join_cig$total_tax) <- "double"
 
 # Merge the data with the eco data frame
 cig_names <- as.character(join_cig$Country.Region[!join_cig$Country.Region %in% eco$country])
@@ -399,11 +400,14 @@ join_cig <- left_join(join_cig, eco, by = "country")
 # Create a normalized column of corona cases per country
 join_cig$normal_pop <- c((as.numeric(join_cig$Value) / as.numeric(join_cig$pop_total)*10))
 
+
 # Creates a graph that examines the connection between cig.taxes and the corona cases number in each country
-plot(x =as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax), y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.015) ,xlab="% taxes of Cigarette Price ", ylab="% Corona cases from Population - * 10" ,main="Conection between Cigarette Taxes and Number of Cases")
-reg5 <- lm(as.numeric(join_cig$normal_pop) ~ as.numeric(join_cig$Average...taxes.as.a...of.cigarette.price...total.tax))
+cor(join_cig$total_tax, join_cig$normal_pop)
+plot(x =as.numeric(join_cig$total_tax), y = as.numeric(join_cig$normal_pop),xlim = c(0,100), ylim = c(0,0.015) ,xlab="% taxes of Cigarette Price ", ylab="% Corona cases from Population - * 10" ,main="Conection between Cigarette Taxes and Number of Cases")
+reg5 <- lm(as.numeric(join_cig$normal_pop) ~ as.numeric(join_cig$total_tax))
 abline(reg5)
 
+cor(join_cig$total_tax, join_cig$normal_pop)
 ```
 
 <br/><br/>  
